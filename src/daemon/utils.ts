@@ -12,6 +12,12 @@ import process from 'node:process';
 import {logger} from '../logger.js';
 import type {YargsOptions} from '../third_party/index.js';
 
+import type {
+  DaemonConnectionOptions,
+  DaemonEndpoint,
+  DaemonTransport,
+} from './types.js';
+
 export const DAEMON_SCRIPT_PATH = path.join(import.meta.dirname, 'daemon.js');
 export const INDEX_SCRIPT_PATH = path.join(
   import.meta.dirname,
@@ -22,6 +28,8 @@ export const INDEX_SCRIPT_PATH = path.join(
 
 const APP_NAME = 'chrome-devtools-mcp';
 export const DAEMON_CLIENT_NAME = 'chrome-devtools-cli-daemon';
+export const DEFAULT_DAEMON_HOST = '127.0.0.1';
+export const DEFAULT_DAEMON_PORT = 9229;
 
 // Using these paths due to strict limits on the POSIX socket path length.
 export function getSocketPath(sessionId: string): string {
@@ -44,6 +52,66 @@ export function getSocketPath(sessionId: string): string {
   // We use /tmp/ because it is much shorter than ~/Library/Application Support/
   // and keeps us well under the 104-character limit.
   return path.join('/tmp', `${appName}-${uid}.sock`);
+}
+
+export function getDaemonEndpoint(
+  sessionId: string,
+  options: DaemonConnectionOptions = {},
+): DaemonEndpoint {
+  if (options.daemonUrl) {
+    return parseDaemonUrl(options.daemonUrl);
+  }
+
+  if (options.transport === 'tcp') {
+    return {
+      transport: 'tcp',
+      host: options.host || DEFAULT_DAEMON_HOST,
+      port: options.port || DEFAULT_DAEMON_PORT,
+    };
+  }
+
+  return {
+    transport: 'unix',
+    path: getSocketPath(sessionId),
+  };
+}
+
+export function parseDaemonUrl(daemonUrl: string): DaemonEndpoint {
+  const url = new URL(daemonUrl);
+  if (url.protocol !== 'tcp:') {
+    throw new Error(`Unsupported daemon URL protocol: ${url.protocol}`);
+  }
+  if (!url.hostname) {
+    throw new Error('Daemon URL must include a host');
+  }
+  const port = Number(url.port || DEFAULT_DAEMON_PORT);
+  if (!Number.isInteger(port) || port <= 0 || port > 65535) {
+    throw new Error(`Invalid daemon URL port: ${url.port}`);
+  }
+  return {
+    transport: 'tcp',
+    host: url.hostname,
+    port,
+  };
+}
+
+export function formatDaemonEndpoint(endpoint: DaemonEndpoint): string {
+  if (endpoint.transport === 'tcp') {
+    return `tcp://${endpoint.host}:${endpoint.port}`;
+  }
+  return endpoint.path;
+}
+
+export function parseDaemonTransport(
+  value: string | undefined,
+): DaemonTransport | undefined {
+  if (value === undefined || value === '') {
+    return undefined;
+  }
+  if (value === 'tcp' || value === 'unix') {
+    return value;
+  }
+  throw new Error(`Invalid daemon transport: ${value}`);
 }
 
 export function getRuntimeHome(sessionId: string): string {

@@ -13,10 +13,14 @@ import type {CallToolResult} from '../third_party/index.js';
 import {PipeTransport} from '../third_party/index.js';
 import {getTempFilePath} from '../utils/files.js';
 
-import type {DaemonMessage, DaemonResponse} from './types.js';
+import type {
+  DaemonConnectionOptions,
+  DaemonMessage,
+  DaemonResponse,
+} from './types.js';
 import {
   DAEMON_SCRIPT_PATH,
-  getSocketPath,
+  getDaemonEndpoint,
   getPidFilePath,
   isDaemonRunning,
 } from './utils.js';
@@ -67,7 +71,11 @@ function waitForFile(filePath: string, removed = false) {
   });
 }
 
-export async function startDaemon(mcpArgs: string[] = [], sessionId: string) {
+export async function startDaemon(
+  mcpArgs: string[] = [],
+  sessionId: string,
+  options: DaemonConnectionOptions = {},
+) {
   if (isDaemonRunning(sessionId)) {
     logger?.('Daemon is already running');
     return;
@@ -79,11 +87,25 @@ export async function startDaemon(mcpArgs: string[] = [], sessionId: string) {
     fs.unlinkSync(pidFilePath);
   }
 
+  const env: NodeJS.ProcessEnv = {
+    ...process.env,
+    CHROME_DEVTOOLS_MCP_SESSION_ID: sessionId,
+  };
+  if (options.transport) {
+    env.CHROME_DEVTOOLS_MCP_DAEMON_TRANSPORT = options.transport;
+  }
+  if (options.host) {
+    env.CHROME_DEVTOOLS_MCP_DAEMON_HOST = options.host;
+  }
+  if (options.port) {
+    env.CHROME_DEVTOOLS_MCP_DAEMON_PORT = String(options.port);
+  }
+
   logger?.('Starting daemon...', ...mcpArgs);
   const child = spawn(process.execPath, [DAEMON_SCRIPT_PATH, ...mcpArgs], {
     detached: true,
     stdio: 'ignore',
-    env: {...process.env, CHROME_DEVTOOLS_MCP_SESSION_ID: sessionId},
+    env,
     cwd: process.cwd(),
     windowsHide: true,
   });
@@ -100,12 +122,13 @@ const SEND_COMMAND_TIMEOUT = 60_000; // ms
 export async function sendCommand(
   command: DaemonMessage,
   sessionId: string,
+  options: DaemonConnectionOptions = {},
 ): Promise<DaemonResponse> {
-  const socketPath = getSocketPath(sessionId);
-
-  const socket = net.createConnection({
-    path: socketPath,
-  });
+  const endpoint = getDaemonEndpoint(sessionId, options);
+  const socket =
+    endpoint.transport === 'tcp'
+      ? net.createConnection({host: endpoint.host, port: endpoint.port})
+      : net.createConnection({path: endpoint.path});
 
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => {
@@ -134,7 +157,15 @@ export async function sendCommand(
   });
 }
 
-export async function stopDaemon(sessionId: string) {
+export async function stopDaemon(
+  sessionId: string,
+  options: DaemonConnectionOptions = {},
+) {
+  if (options.daemonUrl) {
+    await sendCommand({method: 'stop'}, sessionId, options);
+    return;
+  }
+
   if (!isDaemonRunning(sessionId)) {
     logger?.('Daemon is not running');
     return;
@@ -142,7 +173,7 @@ export async function stopDaemon(sessionId: string) {
 
   const pidFilePath = getPidFilePath(sessionId);
 
-  await sendCommand({method: 'stop'}, sessionId);
+  await sendCommand({method: 'stop'}, sessionId, options);
 
   await waitForFile(pidFilePath, /*removed=*/ true);
 }

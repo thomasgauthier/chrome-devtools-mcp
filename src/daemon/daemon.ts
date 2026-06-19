@@ -23,11 +23,13 @@ import {VERSION} from '../version.js';
 import type {DaemonMessage} from './types.js';
 import {
   DAEMON_CLIENT_NAME,
+  formatDaemonEndpoint,
+  getDaemonEndpoint,
   getPidFilePath,
-  getSocketPath,
   INDEX_SCRIPT_PATH,
   IS_WINDOWS,
   isDaemonRunning,
+  parseDaemonTransport,
 } from './utils.js';
 
 const sessionId = process.env.CHROME_DEVTOOLS_MCP_SESSION_ID || '';
@@ -115,7 +117,25 @@ try {
 }
 logger?.(`Writing ${process.pid.toString()} to ${pidFilePath}`);
 
-const socketPath = getSocketPath(sessionId);
+function parseDaemonPort(value: string | undefined): number | undefined {
+  if (value === undefined || value === '') {
+    return undefined;
+  }
+  const port = Number(value);
+  if (!Number.isInteger(port) || port <= 0 || port > 65535) {
+    throw new Error(`Invalid daemon port: ${value}`);
+  }
+  return port;
+}
+
+const daemonEndpoint = getDaemonEndpoint(sessionId, {
+  transport: parseDaemonTransport(
+    process.env.CHROME_DEVTOOLS_MCP_DAEMON_TRANSPORT,
+  ),
+  host: process.env.CHROME_DEVTOOLS_MCP_DAEMON_HOST,
+  port: parseDaemonPort(process.env.CHROME_DEVTOOLS_MCP_DAEMON_PORT),
+});
+const daemonAddress = formatDaemonEndpoint(daemonEndpoint);
 
 const startDate = new Date();
 const mcpServerArgs = process.argv.slice(2);
@@ -189,7 +209,7 @@ async function handleRequest(msg: DaemonMessage) {
         success: true,
         result: JSON.stringify({
           pid: process.pid,
-          socketPath,
+          socketPath: daemonAddress,
           startDate: startDate.toISOString(),
           version: VERSION,
           args: mcpServerArgs,
@@ -213,9 +233,9 @@ async function handleRequest(msg: DaemonMessage) {
 
 async function startSocketServer() {
   // Remove existing socket file if it exists (only on non-Windows)
-  if (!IS_WINDOWS) {
+  if (daemonEndpoint.transport === 'unix' && !IS_WINDOWS) {
     try {
-      fs.unlinkSync(socketPath);
+      fs.unlinkSync(daemonEndpoint.path);
     } catch {
       // ignore errors.
     }
@@ -235,24 +255,36 @@ async function startSocketServer() {
       });
     });
 
-    server.listen(
-      {
-        path: socketPath,
-        readableAll: false,
-        writableAll: false,
-      },
-      async () => {
-        console.log(`Daemon server listening on ${socketPath}`);
+    const onListening = async () => {
+      console.log(`Daemon server listening on ${daemonAddress}`);
 
-        try {
-          // Setup MCP client
-          await setupMCPClient();
-          resolve();
-        } catch (err) {
-          reject(err);
-        }
-      },
-    );
+      try {
+        // Setup MCP client
+        await setupMCPClient();
+        resolve();
+      } catch (err) {
+        reject(err);
+      }
+    };
+
+    if (daemonEndpoint.transport === 'tcp') {
+      server.listen(
+        {
+          host: daemonEndpoint.host,
+          port: daemonEndpoint.port,
+        },
+        onListening,
+      );
+    } else {
+      server.listen(
+        {
+          path: daemonEndpoint.path,
+          readableAll: false,
+          writableAll: false,
+        },
+        onListening,
+      );
+    }
 
     server.on('error', error => {
       logger?.('Server error:', error);
@@ -279,9 +311,9 @@ async function cleanup() {
       server!.close(() => resolve());
     });
   }
-  if (!IS_WINDOWS) {
+  if (daemonEndpoint.transport === 'unix' && !IS_WINDOWS) {
     try {
-      fs.unlinkSync(socketPath);
+      fs.unlinkSync(daemonEndpoint.path);
     } catch {
       // ignore errors
     }

@@ -4,6 +4,26 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+export type DaemonTransport = 'unix' | 'tcp';
+
+export type DaemonEndpoint =
+  | {
+      transport: 'unix';
+      path: string;
+    }
+  | {
+      transport: 'tcp';
+      host: string;
+      port: number;
+    };
+
+export interface DaemonConnectionOptions {
+  daemonUrl?: string;
+  transport?: DaemonTransport;
+  host?: string;
+  port?: number;
+}
+
 export type DaemonMessage =
   | {
       method: 'stop';
