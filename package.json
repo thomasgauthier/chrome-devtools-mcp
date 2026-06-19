@@ -16,7 +16,7 @@
     "typecheck": "tsc --noEmit",
     "format": "eslint --cache --fix . && prettier --write --cache .",
     "check-format": "eslint --cache . && prettier --check --cache .;",
-    "gen": "npm run build && npm run docs:generate && npm run cli:generate && npm run update-metrics && npm run format",
+    "gen": "npm run build && npm run docs:generate && npm run cli:generate && npm run format",
     "docs:generate": "node scripts/generate-docs.ts",
     "start": "npm run build && node build/src/bin/chrome-devtools-mcp.js",
     "start-debug": "DEBUG=mcp:* DEBUG_COLORS=false npm run build && node build/src/bin/chrome-devtools-mcp.js",
@@ -27,7 +27,6 @@
     "prepare": "node scripts/prepare.ts",
     "verify-server-json-version": "node scripts/verify-server-json-version.ts",
     "update-lighthouse": "node scripts/update-lighthouse.ts",
-    "update-metrics": "node scripts/update_metrics.ts",
     "verify-npm-package": "node scripts/verify-npm-package.mjs",
     "eval": "npm run build && node scripts/eval_gemini.ts",
     "count-tokens": "node scripts/count_tokens.ts"

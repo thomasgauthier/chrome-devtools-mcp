@@ -104,8 +104,6 @@ async function runSingleScenario(
         env[key] = value;
       }
     });
-    env['CHROME_DEVTOOLS_MCP_NO_USAGE_STATISTICS'] = 'true';
-
     const args = [serverPath];
     if (!debug) {
       args.push('--headless');

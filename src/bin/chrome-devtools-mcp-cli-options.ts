@@ -262,27 +262,6 @@ export const cliOptions = {
     describe:
       'Set to false to disable sending URLs from performance traces to CrUX API to get field performance data.',
   },
-  usageStatistics: {
-    type: 'boolean',
-    default: true,
-    describe:
-      'Set to false to opt-out of usage statistics collection. Google collects usage data to improve the tool, handled under the Google Privacy Policy (https://policies.google.com/privacy). This is independent from Chrome browser metrics. Disabled if `CHROME_DEVTOOLS_MCP_NO_USAGE_STATISTICS` or `CI` env variables are set.',
-  },
-  clearcutEndpoint: {
-    type: 'string',
-    hidden: true,
-    describe: 'Endpoint for Clearcut telemetry.',
-  },
-  clearcutForceFlushIntervalMs: {
-    type: 'number',
-    hidden: true,
-    describe: 'Force flush interval in milliseconds (for testing).',
-  },
-  clearcutIncludePidHeader: {
-    type: 'boolean',
-    hidden: true,
-    describe: 'Include watchdog PID in Clearcut request headers (for testing).',
-  },
   screenshotFormat: {
     type: 'string',
     description:
@@ -345,7 +324,7 @@ export const cliOptions = {
   viaCli: {
     type: 'boolean',
     describe:
-      'Set by Chrome DevTools CLI if the MCP server is started via the CLI client (this arg exists for usage stats)',
+      'Set by Chrome DevTools CLI if the MCP server is started via the CLI client',
     hidden: true,
   },
   redactNetworkHeaders: {
@@ -361,7 +340,7 @@ export type ParsedArguments = ReturnType<typeof parseArguments>;
 export function parseArguments(
   version: string,
   argv = process.argv,
-  env = process.env,
+  _env = process.env,
 ) {
   const yargsInstance = yargs(hideBin(argv))
     .scriptName('npx chrome-devtools-mcp@latest')
@@ -376,12 +355,6 @@ export function parseArguments(
         !args.executablePath
       ) {
         args.channel = 'stable';
-      }
-      if (env['CI'] || env['CHROME_DEVTOOLS_MCP_NO_USAGE_STATISTICS']) {
-        console.error(
-          "turning off usage statistics. process.env['CI'] || process.env['CHROME_DEVTOOLS_MCP_NO_USAGE_STATISTICS'] is set.",
-        );
-        args.usageStatistics = false;
       }
     })
     .example([
@@ -432,10 +405,6 @@ export function parseArguments(
       [
         '$0 --auto-connect --channel=canary',
         'Connect to a canary Chrome instance (Chrome 144+) running instead of launching a new instance',
-      ],
-      [
-        '$0 --no-usage-statistics',
-        'Do not send usage statistics https://github.com/ChromeDevTools/chrome-devtools-mcp#usage-statistics.',
       ],
       [
         '$0 --no-performance-crux',

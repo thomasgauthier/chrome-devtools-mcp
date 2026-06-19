@@ -35,7 +35,6 @@ async function fetchTools() {
   const transport = new StdioClientTransport({
     command: 'node',
     args: [serverPath, '--viaCli'],
-    env: {...process.env, CHROME_DEVTOOLS_MCP_NO_USAGE_STATISTICS: 'true'},
   });
 
   const client = new Client(

@@ -25,8 +25,6 @@ describe('cli args parsing', () => {
     autoConnect: undefined,
     'performance-crux': true,
     performanceCrux: true,
-    'usage-statistics': true,
-    usageStatistics: true,
     'redact-network-headers': false,
     redactNetworkHeaders: false,
   };
@@ -274,56 +272,6 @@ describe('cli args parsing', () => {
       'auto-connect': true,
       autoConnect: true,
     });
-  });
-
-  it('parses usage statistics flag', async () => {
-    // Test default (should be true).
-    const defaultArgs = parseArguments('1.0.0', ['node', 'main.js'], {});
-    assert.strictEqual(defaultArgs.usageStatistics, true);
-
-    // Test enabling it
-    const enabledArgs = parseArguments(
-      '1.0.0',
-      ['node', 'main.js', '--usage-statistics'],
-      {},
-    );
-    assert.strictEqual(enabledArgs.usageStatistics, true);
-
-    // Test disabling it
-    const disabledArgs = parseArguments(
-      '1.0.0',
-      ['node', 'main.js', '--no-usage-statistics'],
-      {},
-    );
-    assert.strictEqual(disabledArgs.usageStatistics, false);
-  });
-
-  it('respects env variable', async () => {
-    // Test default (should be true).
-    const defaultArgs = parseArguments('1.0.0', ['node', 'main.js'], {
-      CHROME_DEVTOOLS_MCP_NO_USAGE_STATISTICS: 'true',
-    });
-    assert.strictEqual(defaultArgs.usageStatistics, false);
-
-    // Test enabling it
-    const enabledArgs = parseArguments(
-      '1.0.0',
-      ['node', 'main.js', '--usage-statistics'],
-      {
-        CHROME_DEVTOOLS_MCP_NO_USAGE_STATISTICS: 'true',
-      },
-    );
-    assert.strictEqual(enabledArgs.usageStatistics, false);
-
-    // Test disabling it
-    const disabledArgs = parseArguments(
-      '1.0.0',
-      ['node', 'main.js', '--no-usage-statistics'],
-      {
-        CHROME_DEVTOOLS_MCP_NO_USAGE_STATISTICS: 'true',
-      },
-    );
-    assert.strictEqual(disabledArgs.usageStatistics, false);
   });
 
   it('parses performance crux flag', async () => {

@@ -33,10 +33,7 @@ async function spawnServer(): Promise<Server> {
       await executablePath(),
     ],
     {
-      env: {
-        ...process.env,
-        CHROME_DEVTOOLS_MCP_NO_USAGE_STATISTICS: 'true',
-      },
+      env: process.env,
       stdio: ['pipe', 'pipe', 'pipe'],
     },
   ) as Server;

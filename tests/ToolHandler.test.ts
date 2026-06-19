@@ -50,9 +50,7 @@ describe('ToolHandler', () => {
     mockContext.detectOpenDevToolsWindows.resolves();
 
     const toolMutex = new Mutex();
-    const serverArgs = parseArguments('1.0.0', ['node', 'script.js'], {
-      CHROME_DEVTOOLS_MCP_NO_USAGE_STATISTICS: 'true',
-    });
+    const serverArgs = parseArguments('1.0.0', ['node', 'script.js']);
 
     const toolHandler = new ToolHandler(
       tool,
@@ -89,9 +87,7 @@ describe('ToolHandler', () => {
     mockContext.detectOpenDevToolsWindows.resolves();
 
     const toolMutex = new Mutex();
-    const serverArgs = parseArguments('1.0.0', ['node', 'script.js'], {
-      CHROME_DEVTOOLS_MCP_NO_USAGE_STATISTICS: 'true',
-    });
+    const serverArgs = parseArguments('1.0.0', ['node', 'script.js']);
 
     const toolHandler = new ToolHandler(
       tool,
@@ -132,9 +128,7 @@ describe('ToolHandler', () => {
     mockContext.detectOpenDevToolsWindows.resolves();
 
     const toolMutex = new Mutex();
-    const serverArgs = parseArguments('1.0.0', ['node', 'script.js'], {
-      CHROME_DEVTOOLS_MCP_NO_USAGE_STATISTICS: 'true',
-    });
+    const serverArgs = parseArguments('1.0.0', ['node', 'script.js']);
 
     const toolHandler = new ToolHandler(
       tool,
@@ -178,11 +172,11 @@ describe('ToolHandler', () => {
 
     const mockContext = sinon.createStubInstance(McpContext);
     const toolMutex = new Mutex();
-    const serverArgs = parseArguments(
-      '1.0.0',
-      ['node', 'script.js', '--categoryEmulation=false'],
-      {CHROME_DEVTOOLS_MCP_NO_USAGE_STATISTICS: 'true'},
-    );
+    const serverArgs = parseArguments('1.0.0', [
+      'node',
+      'script.js',
+      '--categoryEmulation=false',
+    ]);
 
     const toolHandler = new ToolHandler(
       tool,

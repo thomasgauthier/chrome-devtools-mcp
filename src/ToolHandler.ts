@@ -10,8 +10,6 @@ import type {McpContext} from './McpContext.js';
 import {McpResponse} from './McpResponse.js';
 import type {Mutex} from './Mutex.js';
 import {SlimMcpResponse} from './SlimMcpResponse.js';
-import {ClearcutLogger} from './telemetry/ClearcutLogger.js';
-import {bucketizeLatency} from './telemetry/transformation.js';
 import type {CallToolResult} from './third_party/index.js';
 import {zod} from './third_party/index.js';
 import type {ToolCategory} from './tools/categories.js';
@@ -205,8 +203,6 @@ export class ToolHandler {
     }
 
     const guard = await this.toolMutex.acquire();
-    const startTime = Date.now();
-    let success = false;
     try {
       logger?.(
         `${this.tool.name} request: ${JSON.stringify(params, null, '  ')}`,
@@ -272,7 +268,6 @@ export class ToolHandler {
       if (response.error) {
         result.isError = true;
       }
-      success = true;
       if (this.serverArgs.experimentalStructuredContent) {
         result.structuredContent = structuredContent as Record<string, unknown>;
       }
@@ -293,13 +288,6 @@ export class ToolHandler {
         isError: true,
       };
     } finally {
-      void ClearcutLogger.get()?.logToolInvocation({
-        toolName: this.tool.name,
-        params,
-        schema: this.inputSchema,
-        success,
-        latencyMs: bucketizeLatency(Date.now() - startTime),
-      });
       guard.dispose();
     }
   }

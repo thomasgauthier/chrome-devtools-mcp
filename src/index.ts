@@ -13,8 +13,6 @@ import {loadIssueDescriptions} from './issue-descriptions.js';
 import {logger} from './logger.js';
 import {McpContext} from './McpContext.js';
 import {Mutex} from './Mutex.js';
-import {ClearcutLogger} from './telemetry/ClearcutLogger.js';
-import {FilePersistence} from './telemetry/persistence.js';
 import {
   McpServer,
   type CallToolResult,
@@ -35,17 +33,6 @@ export async function createMcpServer(
     logFile?: fs.WriteStream;
   },
 ) {
-  if (serverArgs.usageStatistics) {
-    ClearcutLogger.initialize({
-      persistence: new FilePersistence(),
-      logFile: serverArgs.logFile,
-      appVersion: VERSION,
-      clearcutEndpoint: serverArgs.clearcutEndpoint,
-      clearcutForceFlushIntervalMs: serverArgs.clearcutForceFlushIntervalMs,
-      clearcutIncludePidHeader: serverArgs.clearcutIncludePidHeader,
-    });
-  }
-
   const server = new McpServer(
     {
       name: 'chrome_devtools',
@@ -74,10 +61,6 @@ export async function createMcpServer(
   };
 
   server.server.oninitialized = () => {
-    const clientName = server.server.getClientVersion()?.name;
-    if (clientName) {
-      ClearcutLogger.get()?.setClientName(clientName);
-    }
     if (server.server.getClientCapabilities()?.roots) {
       void updateRoots();
       server.server.setNotificationHandler(
@@ -201,14 +184,6 @@ Avoid sharing sensitive or personal information that you do not want to share wi
   if (!args.slim && args.performanceCrux) {
     console.error(
       `Performance tools may send trace URLs to the Google CrUX API to fetch real-user experience data. To disable, run with --no-performance-crux.`,
-    );
-  }
-
-  if (!args.slim && args.usageStatistics) {
-    console.error(
-      `
-Google collects usage statistics to improve Chrome DevTools MCP. To opt-out, run with --no-usage-statistics.
-For more details, visit: https://github.com/ChromeDevTools/chrome-devtools-mcp#usage-statistics`,
     );
   }
 };
