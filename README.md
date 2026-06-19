@@ -82,6 +82,77 @@ If you are interested in doing only basic browser tasks, use the `--slim` mode:
 
 See [Slim tool reference](./docs/slim-tool-reference.md).
 
+## Chrome DevTools CLI
+
+The package also installs a `chrome-devtools` CLI for terminal-driven browser
+inspection without configuring an MCP client. See the full [CLI guide](./docs/cli.md).
+
+Install globally:
+
+```bash
+npm install -g chrome-devtools-mcp@latest
+chrome-devtools list_pages
+```
+
+Or, from a source checkout with pnpm:
+
+```bash
+pnpm install
+pnpm run build
+node build/src/bin/chrome-devtools.js list_pages
+```
+
+The CLI uses a background daemon so browser state persists across commands. You
+can manage it explicitly:
+
+```bash
+chrome-devtools start
+chrome-devtools status
+chrome-devtools stop
+```
+
+### TCP daemon mode
+
+By default, the CLI talks to its daemon over a local Unix socket (Linux/macOS) or
+named pipe (Windows). For container workflows, run the daemon on the host over
+TCP and point the container CLI at it.
+
+Start the host daemon:
+
+```bash
+chrome-devtools start \
+  --daemon-transport=tcp \
+  --daemon-host=127.0.0.1 \
+  --daemon-port=9229
+```
+
+If a Docker container needs to connect to the host daemon, bind to an address the
+container can reach:
+
+```bash
+chrome-devtools start \
+  --daemon-transport=tcp \
+  --daemon-host=0.0.0.0 \
+  --daemon-port=9229
+```
+
+Then connect from the container or another client process:
+
+```bash
+chrome-devtools --daemon-url=tcp://host.docker.internal:9229 list_pages
+```
+
+On Linux Docker, add the host gateway if `host.docker.internal` is unavailable:
+
+```bash
+docker run --add-host=host.docker.internal:host-gateway ...
+```
+
+> [!WARNING]
+> TCP daemon mode exposes browser control to anything that can reach the daemon
+> port. Prefer `127.0.0.1` when possible and expose `0.0.0.0` only on trusted
+> networks.
+
 ### MCP Client configuration
 
 <details>
